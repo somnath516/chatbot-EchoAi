@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EchoAI - Advanced AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0474ea 0%, #74bcf4 50%, #e0cab8 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .chat-container {
+            max-height: 500px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: #b49577 transparent;
+        }
+        
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: #b49577;
+            border-radius: 3px;
+        }
+        
+        .message {
+            max-width: 78%;
+            animation: messageSlideIn 0.4s cubic-bezier(0.18, 1.25, 0.4, 1);
+            transform-origin: center bottom;
+        }
+        
+        @keyframes messageSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .user-message {
+            background: linear-gradient(135deg, #0474ea, #024082);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+            box-shadow: 0 6px 20px rgba(4, 116, 234, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .ai-message {
+            background: linear-gradient(135deg, #e0cab8, #ffffff);
+            color: #024082;
+            border-radius: 18px 18px 18px 4px;
+            box-shadow: 0 6px 20px rgba(180, 149, 119, 0.25);
+            border: 1px solid #b49577;
+        }
+        
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #e0cab8, #ffffff);
+            border-radius: 18px;
+            box-shadow: 0 4px 12px rgba(180, 149, 119, 0.2);
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #60645f;
+            margin: 0 3px;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.16s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.32s; }
+        
+        @keyframes typingBounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.6;
+            }
+            30% {
+                transform: translateY(-5px);
+                opacity: 1;
+            }
+        }
+        
+        .message-status {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+        
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .ai-avatar {
+            background: linear-gradient(135deg, #b49577, #e0cab8);
+            border: 2px solid #ffffff;
+        }
+        
+        .user-avatar {
+            background: linear-gradient(135deg, #024082, #0474ea);
+            border: 2px solid #74bcf4;
+        }
+        
+        .suggestion-chip {
+            background: linear-gradient(135deg, rgba(4, 116, 234, 0.2), rgba(116, 188, 244, 0.2));
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #024082;
+        }
+        
+        .suggestion-chip:hover {
+            background: linear-gradient(135deg, rgba(4, 116, 234, 0.3), rgba(116, 188, 244, 0.3));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(4, 116, 234, 0.25);
+        }
+        
+        .chat-input {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.95);
+            border-top: 1px solid rgba(180, 149, 119, 0.2);
+        }
+        
+        .message-reaction {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .message:hover .message-reaction {
+            opacity: 1;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px) scale(0.98);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .glow {
+            box-shadow: 0 0 25px rgba(4, 116, 234, 0.35);
+        }
+        
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(4, 116, 234, 0.3);
+        }
+        
+        .text-gradient {
+            background: linear-gradient(135deg, #0474ea, #024082);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .conversation-stats {
+            background: linear-gradient(135deg, rgba(180, 149, 119, 0.15), rgba(224, 202, 184, 0.15));
+            border: 1px solid rgba(180, 149, 119, 0.2);
+        }
+        
+        .capability-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.95));
+            border: 1px solid rgba(224, 202, 184, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .capability-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(180, 149, 119, 0.2);
+        }
+        
+        .ai-thinking {
+            background: linear-gradient(90deg, #e0cab8, #b49577, #e0cab8);
+            background-size: 200% 100%;
+            animation: thinkingAnimation 2s infinite;
+        }
+        
+        @keyframes thinkingAnimation {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-[#0474ea] via-[#74bcf4] to-[#e0cab8]">
+    <div class="w-full max-w-4xl mx-auto fade-in">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-[#024082] via-[#0474ea] to-[#74bcf4] text-white p-6 rounded-t-2xl shadow-2xl relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent to-white/15"></div>
+            <div class="relative z-10">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="avatar ai-avatar pulse">
+                            <i class="fas fa-wave-square text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold">EchoAI</h1>
+                            <p class="text-blue-100 text-sm flex items-center">
+                                <span class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
+                                Online • Advanced AI Assistant
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button class="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all duration-300 transform hover:scale-110 hover-lift">
+                            <i class="fas fa-cog text-sm"></i>
+                        </button>
+                        <button class="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all duration-300 transform hover:scale-110 hover-lift">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Conversation Stats -->
+                <div class="conversation-stats rounded-xl p-4 mt-4 flex items-center justify-between text-sm">
+                    <div class="text-center">
+                        <div class="font-semibold">0</div>
+                        <div class="text-blue-200">Messages</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-semibold">100%</div>
+                        <div class="text-blue-200">Accuracy</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-semibold">0s</div>
+                        <div class="text-blue-200">Response Time</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-semibold">∞</div>
+                        <div class="text-blue-200">Knowledge</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capabilities Showcase -->
+        <div class="bg-white/95 p-4 border-b border-[#e0cab8]">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="capability-card rounded-lg p-3 text-center cursor-pointer" onclick="quickSuggestion('Help me with research on artificial intelligence')">
+                    <div class="w-8 h-8 bg-[#0474ea] rounded-full flex items-center justify-center mx-auto mb-2">
+                        <i class="fas fa-search text-white text-sm"></i>
+                    </div>
+                    <span class="text-[#024082] text-xs font-medium">Research</span>
+                </div>
+                <div class="capability-card rounded-lg p-3 text-center cursor-pointer" onclick="quickSuggestion('Write a professional email for me')">
+                    <div class="w-8 h-8 bg-[#b49577] rounded-full flex items-center justify-center mx-auto mb-2">
+                        <i class="fas fa-pen text-white text-sm"></i>
+                    </div>
+                    <span class="text-[#024082] text-xs font-medium">Writing</span>
+                </div>
+                <div class="capability-card rounded-lg p-3 text-center cursor-pointer" onclick="quickSuggestion('Explain quantum computing in simple terms')">
+                    <div class="w-8 h-8 bg-[#74bcf4] rounded-full flex items-center justify-center mx-auto mb-2">
+                        <i class="fas fa-lightbulb text-white text-sm"></i>
+                    </div>
+                    <span class="text-[#024082] text-xs font-medium">Explain</span>
+                </div>
+                <div class="capability-card rounded-lg p-3 text-center cursor-pointer" onclick="quickSuggestion('Solve this math problem: 2x + 5 = 15')">
+                    <div class="w-8 h-8 bg-[#60645f] rounded-full flex items-center justify-center mx-auto mb-2">
+                        <i class="fas fa-calculator text-white text-sm"></i>
+                    </div>
+                    <span class="text-[#024082] text-xs font-medium">Solve</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div class="chat-container bg-gradient-to-b from-white to-[#f8fafc] p-6 h-96" id="chatMessages">
+            <!-- Welcome message -->
+            <div class="flex items-start space-x-3 mb-6">
+                <div class="avatar ai-avatar">
+                    <i class="fas fa-wave-square text-white"></i>
+                </div>
+                <div class="message ai-message px-5 py-4">
+                    <p class="text-[#024082] font-medium">Hello! I'm EchoAI, your advanced AI assistant. I can help you with research, writing, problem-solving, coding, and much more. What would you like to explore today?</p>
+                    <div class="flex items-center justify-between mt-3">
+                        <span class="message-status text-[#60645f] text-xs">EchoAI • Just now</span>
+                        <div class="message-reaction flex space-x-1">
+                            <button class="w-6 h-6 rounded-full bg-[#e0cab8] hover:bg-[#b49577] flex items-center justify-center text-xs text-[#024082] hover:text-white transition-colors">
+                                <i class="fas fa-thumbs-up"></i>
+                            </button>
+                            <button class="w-6 h-6 rounded-full bg-[#e0cab8] hover:bg-[#b49577] flex items-center justify-center text-xs text-[#024082] hover:text-white transition-colors">
+                                <i class="fas fa-thumbs-down"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick suggestions -->
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="suggestion-chip rounded-xl px-4 py-3 text-center text-sm cursor-pointer hover-lift" onclick="quickSuggestion('Help me research machine learning trends')">
+                    <i class="fas fa-search mr-2"></i>Research Help
+                </div>
+                <div class="suggestion-chip rounded-xl px-4 py-3 text-center text-sm cursor-pointer hover-lift" onclick="quickSuggestion('Write a professional report summary')">
+                    <i class="fas fa-pen mr-2"></i>Writing Help
+                </div>
+                <div class="suggestion-chip rounded-xl px-4 py-3 text-center text-sm cursor-pointer hover-lift" onclick="quickSuggestion('Explain blockchain technology')">
+                    <i class="fas fa-lightbulb mr-2"></i>Explain Concepts
+                </div>
+                <div class="suggestion-chip rounded-xl px-4 py-3 text-center text-sm cursor-pointer hover-lift" onclick="quickSuggestion('Solve this coding problem')">
+                    <i class="fas fa-code mr-2"></i>Code Help
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input rounded-b-2xl p-5">
+            <div class="flex items-center space-x-4">
+                <div class="flex-1 relative">
+                    <input 
+                        type="text" 
+                        id="userInput" 
+                        placeholder="Ask EchoAI anything..." 
+                        class="w-full border-0 bg-white rounded-2xl px-5 py-4 pr-16 text-[#024082] placeholder-[#74bcf4] focus:ring-2 focus:ring-[#0474ea] focus:outline-none shadow-sm hover-lift transition-all"
+                        onkeypress="handleKeyPress(event)"
+                    >
+                    <div class="absolute right-3 top-1/2 transform -translate-y-1/2 flex space-x-2">
+                        <button class="w-8 h-8 rounded-full bg-[#e0cab8] hover:bg-[#b49577] flex items-center justify-center text-[#024082] hover:text-white text-sm transition-colors hover-lift">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button class="w-8 h-8 rounded-full bg-[#e0cab8] hover:bg-[#b49577] flex items-center justify-center text-[#024082] hover:text-white text-sm transition-colors hover-lift">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    </div>
+                </div>
+                <button 
+                    onclick="sendMessage()" 
+                    id="sendButton"
+                    class="bg-gradient-to-r from-[#0474ea] to-[#024082] hover:from-[#024082] hover:to-[#0474ea] text-white rounded-2xl w-14 h-14 flex items-center justify-center transition-all duration-300 transform hover:scale-105 shadow-lg glow hover-lift"
+                >
+                    <i class="fas fa-paper-plane text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- Input hints -->
+            <div class="flex items-center justify-between mt-3 px-2">
+                <div class="text-xs text-[#60645f]">
+                    <i class="fas fa-lightbulb text-[#b49577] mr-1"></i>
+                    Try: "How does ChatGPT work?"
+                </div>
+                <div class="text-xs text-[#60645f]">
+                    Press Enter to send • Powered by AI
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Advanced response system simulating ChatGPT capabilities
+        const responseDatabase = {
+            // Research and information queries
+            research: [
+                "I'd be happy to help with research on that topic. Based on current knowledge, ",
+                "Researching that subject reveals several key insights. ",
+                "From what I understand about this topic, ",
+                "Based on available information, ",
+                "Research indicates that "
+            ],
+            
+            // Writing and content creation
+            writing: [
+                "I can help you craft that content. Here's a professional approach: ",
+                "For effective writing on this topic, consider: ",
+                "Here's a well-structured response: ",
+                "I'd suggest framing it this way: ",
+                "This would be an effective way to communicate that: "
+            ],
+            
+            // Explanations and definitions
+            explanation: [
+                "Let me explain that concept clearly: ",
+                "In simple terms, this means: ",
+                "The core idea here is: ",
+                "To understand this properly: ",
+                "Here's a breakdown of how this works: "
+            ],
+            
+            // Problem solving
+            problem: [
+                "Let's solve this step by step: ",
+                "Here's how to approach this problem: ",
+                "The solution involves: ",
+                "To resolve this, consider: ",
+                "Here's the methodology for solving this: "
+            ],
+            
+            // Coding and technical
+            coding: [
+                "For that coding challenge, here's the approach: ",
+                "The algorithm for this would be: ",
+                "Here's how to implement that: ",
+                "The technical solution involves: ",
+                "For optimal code structure: "
+            ],
+            
+            // Creative and ideas
+            creative: [
+                "Here are some creative ideas: ",
+                "For innovative approaches: ",
+                "Consider these possibilities: ",
+                "Some creative solutions include: ",
+                "You might explore these ideas: "
+            ]
+        };
+
+        // Knowledge base for various topics
+        const knowledgeBase = {
+            technology: [
+                "Artificial intelligence is transforming industries through machine learning and deep learning algorithms.",
+                "Blockchain technology provides decentralized, secure transaction recording across distributed networks.",
+                "Cloud computing enables scalable, on-demand access to computing resources over the internet.",
+                "Quantum computing leverages quantum mechanics to solve complex problems exponentially faster.",
+                "IoT devices create interconnected networks that collect and exchange data seamlessly."
+            ],
+            science: [
+                "Quantum mechanics describes behavior of particles at atomic and subatomic levels.",
+                "CRISPR gene editing allows precise modification of DNA sequences in living organisms.",
+                "Renewable energy sources like solar and wind are crucial for sustainable development.",
+                "Neuroscience explores how the brain and nervous system function and develop.",
+                "Climate change research shows significant impact of human activities on global temperatures."
+            ],
+            business: [
+                "Digital transformation is essential for businesses to remain competitive in modern markets.",
+                "Agile methodology emphasizes iterative development and cross-functional collaboration.",
+                "Data-driven decision making improves business outcomes through analytics and insights.",
+                "Remote work trends are reshaping organizational structures and work cultures.",
+                "Sustainable business practices are increasingly important for long-term success."
+            ],
+            health: [
+                "Personalized medicine tailors treatments based on individual genetic profiles.",
+                "Telemedicine enables remote healthcare consultations and monitoring.",
+                "Mental health awareness has grown significantly in recent years.",
+                "Preventive healthcare focuses on maintaining wellness rather than treating illness.",
+                "Wearable technology monitors health metrics in real-time for better insights."
+            ]
+        };
+
+        let conversationContext = {
+            messageCount: 0,
+            currentTopic: null,
+            userPreferences: [],
+            conversationDepth: 0
+        };
+
+        function getCurrentTime() {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function analyzeQuery(userMessage) {
+            const message = userMessage.toLowerCase();
+            let category = 'general';
+            let topic = null;
+            
+            // Detect category
+            if (message.includes('research') || message.includes('find') || message.includes('information') || message.includes('about')) {
+                category = 'research';
+            } else if (message.includes('write') || message.includes('content') || message.includes('email') || message.includes('document')) {
+                category = 'writing';
+            } else if (message.includes('explain') || message.includes('what is') || message.includes('how does') || message.includes('define')) {
+                category = 'explanation';
+            } else if (message.includes('solve') || message.includes('problem') || message.includes('help with') || message.includes('calculate')) {
+                category = 'problem';
+            } else if (message.includes('code') || message.includes('program') || message.includes('algorithm') || message.includes('python') || message.includes('javascript')) {
+                category = 'coding';
+            } else if (message.includes('idea') || message.includes('creative') || message.includes('suggest') || message.includes('brainstorm')) {
+                category = 'creative';
+            }
+            
+            // Detect topic
+            if (message.includes('ai') || message.includes('artificial intelligence') || message.includes('machine learning')) {
+                topic = 'technology';
+            } else if (message.includes('science') || message.includes('physics') || message.includes('biology') || message.includes('chemistry')) {
+                topic = 'science';
+            } else if (message.includes('business') || message.includes('market') || message.includes('company') || message.includes('finance')) {
+                topic = 'business';
+            } else if (message.includes('health') || message.includes('medical') || message.includes('doctor') || message.includes('fitness')) {
+                topic = 'health';
+            }
+            
+            return { category, topic };
+        }
+
+        function generateAIResponse(userMessage) {
+            conversationContext.messageCount++;
+            const analysis = analyzeQuery(userMessage);
+            const { category, topic } = analysis;
+            
+            if (topic) conversationContext.currentTopic = topic;
+            
+            // Get base response template
+            const responses = responseDatabase[category];
+            const baseResponse = responses[Math.floor(Math.random() * responses.length)];
+            
+            // Add topic-specific knowledge if available
+            let detailedResponse = baseResponse;
+            if (topic && knowledgeBase[topic]) {
+                const knowledge = knowledgeBase[topic][Math.floor(Math.random() * knowledgeBase[topic].length)];
+                detailedResponse += knowledge;
+            } else {
+                // Generic knowledgeable response
+                detailedResponse += "This is a complex topic that involves multiple aspects. The current understanding suggests that emerging technologies and methodologies are continuously evolving our approach to such challenges. Best practices typically involve thorough research, careful planning, and iterative implementation based on feedback and results.";
+            }
+            
+            // Add follow-up for more natural conversation
+            if (conversationContext.messageCount > 1 && Math.random() > 0.4) {
+                const followUps = [
+                    " Would you like me to elaborate on any specific aspect?",
+                    " Does this address your question adequately?",
+                    " Would you like more detailed information about this?",
+                    " Is there a particular angle you'd like me to focus on?",
+                    " Would you like me to provide examples or case studies?"
+                ];
+                detailedResponse += followUps[Math.floor(Math.random() * followUps.length)];
+            }
+            
+            // Add personalization for returning users
+            if (conversationContext.messageCount > 3) {
+                detailedResponse = detailedResponse.replace('I', 'Based on our previous conversation, I');
+            }
+            
+            return detailedResponse;
+        }
+
+        function addMessage(message, isUser = false) {
+            const chatContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex items-start space-x-3 mb-5 ${isUser ? 'justify-end' : ''}`;
+            
+            if (isUser) {
+                messageDiv.innerHTML = `
+                    <div class="flex items-end space-x-2 justify-end">
+                        <div class="message user-message px-5 py-4">
+                            <p class="font-medium">${message}</p>
+                            <div class="flex items-center justify-between mt-3">
+                                <span class="message-status text-blue-100 text-xs">You • ${getCurrentTime()}</span>
+                                <div class="message-reaction flex space-x-1">
+                                    <button class="w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-xs text-white transition-colors">
+                                        <i class="fas fa-check-double"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="avatar user-avatar">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <div class="avatar ai-avatar">
+                            <i class="fas fa-wave-square text-white"></i>
+                        </div>
+                        <div class="message ai-message px-5 py-4">
+                            <p class="text-[#024082] font-medium">${message}</p>
+                            <div class="flex items-center justify-between mt-3">
+                                <span class="message-status text-[#60645f] text-xs">EchoAI • ${getCurrentTime()}</span>
+                                <div class="message-reaction flex space-x-1">
+                                    <button class="w-6 h-6 rounded-full bg-[#e0cab8] hover:bg-[#b49577] flex items-center justify-center text-xs text-[#024082] hover:text-white transition-colors" onclick="reactToMessage(this, 'like')">
+                                        <i class="fas fa-thumbs-up"></i>
+                                    </button>
+                                    <button class="w-6 h-6 rounded-full bg-[#e0cab8] hover:bg-[#b49577] flex items-center justify-center text-xs text-[#024082] hover:text-white transition-colors" onclick="reactToMessage(this, 'dislike')">
+                                        <i class="fas fa-thumbs-down"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const chatContainer = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'flex items-start space-x-3 mb-5';
+            typingDiv.innerHTML = `
+                <div class="avatar ai-avatar">
+                    <i class="fas fa-wave-square text-white"></i>
+                </div>
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <span class="text-[#60645f] text-xs ml-2">EchoAI is thinking...</span>
+                </div>
+            `;
+            chatContainer.appendChild(typingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            const sendButton = document.getElementById('sendButton');
+            
+            if (message) {
+                // Add user message
+                addMessage(message, true);
+                input.value = '';
+                
+                // Disable send button during processing
+                sendButton.disabled = true;
+                sendButton.classList.add('opacity-50', 'cursor-not-allowed');
+                
+                // Show typing indicator
+                showTypingIndicator();
+                
+                // Simulate AI processing with variable timing
+                const thinkingTime = 800 + Math.random() * 1200;
+                
+                setTimeout(() => {
+                    hideTypingIndicator();
+                    const response = generateAIResponse(message);
+                    
+                    // Simulate realistic typing
+                    let typedResponse = '';
+                    let charIndex = 0;
+                    const typingInterval = setInterval(() => {
+                        if (charIndex < response.length) {
+                            typedResponse += response.charAt(charIndex);
+                            
+                            const existingResponse = document.getElementById('aiResponse');
+                            if (existingResponse) {
+                                existingResponse.querySelector('p').textContent = typedResponse;
+                            } else {
+                                const tempDiv = document.createElement('div');
+                                tempDiv.id = 'aiResponse';
+                                tempDiv.className = 'flex items-start space-x-3 mb-5';
+                                tempDiv.innerHTML = `
+                                    <div class="avatar ai-avatar">
+                                        <i class="fas fa-wave-square text-white"></i>
+                                    </div>
+                                    <div class="message ai-message px-5 py-4">
+                                        <p class="text-[#024082] font-medium">${typedResponse}</p>
+                                        <div class="flex items-center justify-between mt-3">
+                                            <span class="message-status text-[#60645f] text-xs">EchoAI • Typing...</span>
+                                        </div>
+                                    </div>
+                                `;
+                                document.getElementById('chatMessages').appendChild(tempDiv);
+                            }
+                            
+                            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                            charIndex++;
+                        } else {
+                            clearInterval(typingInterval);
+                            document.getElementById('aiResponse').remove();
+                            addMessage(response, false);
+                            
+                            // Update conversation stats
+                            updateConversationStats();
+                            
+                            // Re-enable send button
+                            sendButton.disabled = false;
+                            sendButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                        }
+                    }, 20 + Math.random() * 30);
+                }, thinkingTime);
+            }
+        }
+
+        function updateConversationStats() {
+            const stats = document.querySelectorAll('.conversation-stats > div > div:first-child');
+            if (stats[0]) {
+                const currentCount = parseInt(stats[0].textContent);
+                stats[0].textContent = currentCount + 1;
+                
+                // Update response time with realistic value
+                if (stats[2]) {
+                    const responseTime = (1.5 + Math.random() * 2.5).toFixed(1);
+                    stats[2].textContent = responseTime + 's';
+                }
+                
+                // Animate the update
+                stats.forEach(stat => {
+                    stat.classList.add('scale-110');
+                    setTimeout(() => stat.classList.remove('scale-110'), 300);
+                });
+            }
+        }
+
+        function quickSuggestion(suggestion) {
+            document.getElementById('userInput').value = suggestion;
+            document.getElementById('userInput').focus();
+            setTimeout(sendMessage, 400);
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function reactToMessage(button, reaction) {
+            const messageDiv = button.closest('.message');
+            const reactionDiv = messageDiv.querySelector('.message-reaction');
+            
+            if (reaction === 'like') {
+                reactionDiv.innerHTML = '<span class="text-green-600 text-xs font-medium"><i class="fas fa-thumbs-up mr-1"></i>Helpful</span>';
+            } else {
+                reactionDiv.innerHTML = '<span class="text-red-600 text-xs font-medium"><i class="fas fa-thumbs-down mr-1"></i>Not helpful</span>';
+            }
+            
+            messageDiv.style.transform = 'scale(1.02)';
+            setTimeout(() => messageDiv.style.transform = 'scale(1)', 150);
+        }
+
+        // Initialize with focus and animation
+        setTimeout(() => {
+            document.getElementById('userInput').focus();
+            document.getElementById('userInput').classList.add('glow');
+            setTimeout(() => document.getElementById('userInput').classList.remove('glow'), 2000);
+        }, 1000);
+
+        // Add periodic subtle animations
+        setInterval(() => {
+            const elements = document.querySelectorAll('.avatar, .capability-card');
+            const randomElement = elements[Math.floor(Math.random() * elements.length)];
+            randomElement.classList.add('scale-105');
+            setTimeout(() => randomElement.classList.remove('scale-105'), 300);
+        }, 8000);
+    </script>
+</body>
+</html>
